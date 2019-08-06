@@ -94,7 +94,7 @@ Private addresses
 
 ### Transaction Types
 
-Depending on the types of address used in the transaction, there are four types of Transactions.
+Depending on the types of address used in the transaction, there are four types of Transactions, and a special private contract call or creation.
 
 #### Public Transaction
 
@@ -106,25 +106,18 @@ A Shielded transaction transfers value from one public account to one or more pr
 
 ##### Specification
 
-The field **nonce**, **gasPrice**, **gasLimit**, **value**, **v**, **r** and **s** work in the same way as normal transactions.
+* **nonce**, **gasPrice**, **gasLimit**, **value**, **v**, **r** and **s** work in the same way as normal transactions.
+
+* **to** should be empty since the value is supposed to transfer to a private address. No value will be transferred to the public address.
 
 * **data** should be empty since this type of transaction should not involve with contract creation or contract call.
 
-* **to** should be empty since the value is supposed to transfer to a private address. No value will be transferred to public address.
-
-* **balancing_value** in `PrivateTransaction` should equal to the negative of **value**. Since the value deducted from public balance will be fully transferred to private balance.
-
 * **spends** in `PrivateTransaction` should be empty. Since we don't allow public input and private inputs being present in the same transaction.
 
+* **outputs** in `PrivateTransaction` should not be empty.
+
+* **balancing_value** in `PrivateTransaction` should equal to the negative of **value**. Since the value deducted from public balance will be fully transferred to private balance.
 The transaction fee will be deducted from the sender's public account balance in addition to the value. It's the same Ethereum's transaction.
-
-#### Deshielded Transaction
-
-A Deshielded Transaction transfers value from private addresses to one public account.
-
-##### Specification
-
-* The field **nonce**, **r** and **s** should be empty. Since no public input is used in this type of transaction.
 
 #### Pure Private Transaction
 
@@ -132,24 +125,84 @@ A pure private transaction transfers value from private adresses to private adre
 
 ##### Specification
 
-* The field **nonce**, **to**, **value**, **data**, **r** and **s** should be empty. Since no public input or output should be involved. Contract creation or contract calls will not be involved as well.
+* **nonce**, **to**, **value**, **data**, **r** and **s** should be empty. Since no public input or output should be involved. Contract creation or contract calls will not be involved as well.
 
-* The filed **balancing_value** in `PrivateTransaction` should equal to the transaction fee for this transaction.
+* **gasPrice** works the same, it represents the number of Wei paid per gas unit.
+
+* **gasLimit** has no refund. Refer the [Transaction fee](#Transaction-Fees) for more details.
+
+* **balancing_value** equals to gasPrice * gasLimit.
 
 * Both **spends** and **outputs** in `PrivateTransaction` should not be empty.
 
+#### Deshielded Transaction
 
-### Transaction fees
+A Deshielded Transaction transfers value from private addresses to one public account.
 
-#### Transaction Cost for Private Transaction
+##### Specification
+
+* **nonce**, **r** and **s** should be empty. Since no public input is involved.
+
+* **gasLimit** has no refund.
+
+* **to**, **value**, **data**, **gasPrice** works the same as normal transaction.
+
+* **balancing_value** equals to value + gasPrice * gasLimit.
+
+* **spends** in `PrivateTransaction` should not be empty. **outputs** is used to send change.
+
+#### Private Contract Call/Creation
+
+A private contract creation or contract call allows users to create a smart contract, or call a smart contract anonymously, without revealing its public account. The public sender will not be represented. Instead, the gas and value will be paid from private inputs.
+
+This type of transaction will not be supported in the first version of the Origo network.
+We preserved its encoding for future extension.
+
+##### Specification
+
+* **gasPrice**, **to**, **value**, **data** work the same as Ethereum's contract call or creation.
+
+* **nonce**, **r** and **s** should be empty. Since no public account is involved.
+
+* **gasLimit** has no refund.
+
+* **balancing_value** equals to value + gasPrice * gasLimit.
+
+* **spends** in `PrivateTransaction` should not be empty. **outputs** is used to send change.
+
+#### Summary
+
+Here's a summary of the specification for each field for different transaction types.
+
+||Public to Public|Public to contract/creation|Shielded|Pure Private|Deshield|Private Contract Call/Creation|
+|---|---|---|---|---|---|---|
+|Nonce|sender nonce|sender nonce|sender nonce|empty|empty|empty|
+|gasPrice|wei/gas|wei/gas|wei/gas|wei/gas|wei/gas|wei/gas|
+|gasLimit|max gas|max gas|max gas|gas cost|gas cost|gas cost|
+|to|receiver address|contract address, empty for contract creation|empty|empty|receiver address|contract address, |empty for contract creation(data shouldn't be empty)|
+|value|value if any|value if any|value|0|value|value if any|
+|data|empty?|data if any|empty|empty|empty|data if any|
+|v|id|id|id|id|id|id|
+|r, s|signature|signature|signature|empty|empty|empty|
+|spends|NA|NA|empty|private input|private input|private input|
+|outputs|NA|NA|private ouput|private ouput|change or empty|change or empty|
+|balancing value|NA|NA|-value|gasLimit*price|value + gasLimit*price|value + gasLimit*price|
+
+### Transaction Fees
+
+#### Gas Cost for Private Transaction
 
 Private transactions invloves additional fields and requires additional computation.
-Its cost should be different from normal transactions. 
+Its cost should be different from normal transactions. The gas cost should equals to:
 
-#### Deducting Transaction fee
+g<sub>private_tx</sub> = g<sub>base</sub> + g<sub>spend</sub>*num_of_spends + g<sub>output</sub>*num_of_outputs.
+
+The exact value of g<sub>base</sub>, g<sub>spend</sub> and g<sub>output</sub> will be specified later.
+
+#### Deduct Transaction Fee
 
 For shielded transactions, the transaction fee will be deducted from the sender's public balance.
 
-For deshielded transactions or pure private transactions, the cost will be deducted from private inputs. 
+For deshielded transactions or pure private transactions, the cost will be deducted from private inputs. One major difference is that **gasLimit** will have different meanings.
 
 ### Signature
