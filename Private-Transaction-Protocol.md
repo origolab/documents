@@ -16,16 +16,16 @@ Normal transactions in the Origo network, including contract call and contract c
 
 ```rust
 struct Transaction {
- nonce: U256,
- gas_price: U256,
- gas: U256,
- action: Action,
- value: U256,
- data: Bytes,
- ...
+    nonce: U256,
+    gas_price: U256,
+    gas: U256,
+    action: Action,
+    value: U256,
+    data: Bytes,
+    ...
 
- /// Additional field for private transaction.
- private_tx: Option<PrivateTransaction>,
+    /// Additional field for private transaction.
+    private_tx: Option<PrivateTransaction>,
 }
 ```
 
@@ -33,11 +33,11 @@ The ``PrivateTransaction`` contains the following fields:
 
 ```rust
 struct PrivateTransaction {
- version: u32,
- spends: Vec<SpendDescription>,
- outputs: Vec<OutputDescription>,
- balancing_value: i64,
- binding_sig: [u8; 64],
+    version: u32,
+    spends: Vec<SpendDescription>,
+    outputs: Vec<OutputDescription>,
+    balancing_value: i64,
+    binding_sig: [u8; 64],
 }
 ```
 
@@ -64,7 +64,7 @@ struct SpendDescription {
 
 ```rust
 struct OutputDescription {
- cv: edwards::Point<Bls12, Unknown>,
+    cv: edwards::Point<Bls12, Unknown>,
  cmu: Fr,
  ephemeral_key: edwards::Point<Bls12, Unknown>,
  enc_ciphertext: [u8; 580],
@@ -227,26 +227,25 @@ For transactions that involve private inputs or outputs, the fields in `PrivateT
 
 ```rust
 fn hash(tx: &Transaction, chain_id: Option<u64>) -> H256 {
- let mut s = RlpStream::new();
-
- let offset = if tx.is_private() { 1 } else { 0 };
- s.begin_list(if chain_id.is_none() { 6 } else { 9 } + offset);
- s.append(&tx.nonce);
- s.append(&tx.gas_price);
- s.append(&tx.gas);
- s.append(&tx.action);
- s.append(&tx.value);
- s.append(&tx.data);
- if tx.is_private() {
- // spend_auth_sig and binding_sig is appended as "".
- s.append(&tx.private_tx);
- }
- if let Some(n) = chain_id {
- s.append(&n);
- s.append(&0u8);
- s.append(&0u8);
- }
- keccak(s.as_raw())
+    let mut s = RlpStream::new();
+    let offset = if tx.is_private() { 1 } else { 0 };
+    s.begin_list(if chain_id.is_none() { 6 } else { 9 } + offset);
+    s.append(&tx.nonce);
+    s.append(&tx.gas_price);
+    s.append(&tx.gas);
+    s.append(&tx.action);
+    s.append(&tx.value);
+    s.append(&tx.data);
+    if tx.is_private() {
+        // spend_auth_sig and binding_sig is appended as "".
+        s.append(&tx.private_tx);
+    }
+    if let Some(n) = chain_id {
+        s.append(&n);
+        s.append(&0u8);
+        s.append(&0u8);
+    }
+    keccak(s.as_raw())
 }
 ```
 
