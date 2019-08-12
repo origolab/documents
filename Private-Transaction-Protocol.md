@@ -32,7 +32,8 @@ struct Transaction {
 The ``PrivateTransaction`` contains the following fields:
 
 ```rust
-struct ConfidentialTransaction {
+struct PrivateTransaction {
+ version: u32,
  spends: Vec<SpendDescription>,
  outputs: Vec<OutputDescription>,
  balancing_value: i64,
@@ -76,7 +77,7 @@ struct OutputDescription {
 
 ### Balancing Value
 
-`balancing_value` indicates how values are transferred between public balance and private notes.
+`balancing_value` indicates how values are transferred between public balance and private notes. A positive `balancing_value` transfers value from private input to public balance; a negative `balancing_value` transfers value from public account to private output.
 
 ### Binding Signature
 
@@ -201,8 +202,52 @@ The exact value of g<sub>base</sub>, g<sub>spend</sub> and g<sub>output</sub> wi
 
 #### Deduct Transaction Fee
 
-For shielded transactions, the transaction fee will be deducted from the sender's public balance.
+For shielded transactions, the transaction fee will be deducted from the sender's public balance. **gasLimit** is used to specify the maximum amount of gas that should be used in executing this transaction.
+It's paid upfront and the unused gas will be refunded to the sender's account.
 
-For deshielded transactions or pure private transactions, the cost will be deducted from private inputs. One major difference is that **gasLimit** will have different meanings.
+For deshielded transactions or pure private transactions, the cost will be deducted from private inputs. One major difference is that it's impossible to refund the unused gas back to private inputs. So **gasLimit** specifies the amount of gas paid for executing the transaction. If it exceeds the required gas amount, no refund will be issued.
 
 ### Signature
+
+Origo's private transactions utilize three signature schemas:
+
+* For transactions that involve a public sender account, ECDSA signature based on the SECP-256k1 curve is used to sign the transaction.
+
+* Spend Authorization Signature is used to sign authorizations of spending private notes.
+
+* Binding Signature is used to enforce the balance of Spend transfers and Output transfers, and to prevent their replay across transactions.
+
+#### Transaction Hash for Signature(SigHash)
+
+Signatures and/or non-interactive proofs associated with transaction inputs are used to authorize spending. To prevent these signatures or proofs being replayed in a different transaction, they should be bind to the transaction for which they are intended. This is done by hashing the transaction and use the transaction hash for the signature schemas mentioned above.
+
+As an example, Ethereum's transaction signature is signed over the hash of the rlp encoding of (nonce, gasPrice, gasLimit, to, value, data, v). Such that those fields can not be modified to create another transaction with the same valid signature. For normal transactions that don't involve the private transaction field, the hash for signature is computed in the same way as Ethereum.
+
+For transactions that involve private inputs or outputs, the fields in `PrivateTransaction`(except for `spend_auth_sig` and `binding_sig`) will be included in the transaction hash for Signature. So the `sigHash` will be computed as:
+
+```rust
+fn hash(tx: &Transaction, chain_id: Option<u64>) -> H256 {
+ let mut s = RlpStream::new();
+
+ let offset = if tx.is_private() { 1 } else { 0 };
+ s.begin_list(if chain_id.is_none() { 6 } else { 9 } + offset);
+ s.append(&tx.nonce);
+ s.append(&tx.gas_price);
+ s.append(&tx.gas);
+ s.append(&tx.action);
+ s.append(&tx.value);
+ s.append(&tx.data);
+ if tx.is_private() {
+ // spend_auth_sig and binding_sig is appended as "".
+ s.append(&tx.private_tx);
+ }
+ if let Some(n) = chain_id {
+ s.append(&n);
+ s.append(&0u8);
+ s.append(&0u8);
+ }
+ keccak(s.as_raw())
+}
+```
+
+**Note:** The sigHash computation is different from the [method](https://github.com/zcash/zips/blob/master/zip-0243.rst) used by Zcash. In their approach, each field is hashed by BLAKE2b with personalization, and then all the hashed values are then combined and hashed again. We should examine if there's any security flaw.
