@@ -77,7 +77,7 @@ struct OutputDescription {
 
 ### Balancing Value
 
-`balancing_value` indicates how values are transferred between public balance and private notes. A positive `balancing_value` transfers value from private input to public balance; a negative `balancing_value` transfers value from public account to private output.
+`balancing_value` indicates how values are transferred between public account and private notes. A positive `balancing_value` transfers value from private input to public account; a negative `balancing_value` transfers value from public account to private output.
 
 ### Binding Signature
 
@@ -89,13 +89,13 @@ struct OutputDescription {
 
 There're two types of address in the Origo Network: the transparent address and the private address.
 
-The transparent address is in the same format as the Ethereum address, which is the last 160 bits of the Keccak-256 hash of the public key. It represents an account in the network.
+The transparent address is in the same format as the Ethereum address, which is the last 160 bits of the Keccak-256 hash of the public key. It represents a public account in the network.
 
 Private addresses
 
 ### Transaction Types
 
-Depending on the types of address used in the transaction, there are four types of Transactions, and a special private contract call or creation.
+Depending on the types of addresses used in the transaction, there are four types of Transactions, and a special private contract call or creation.
 
 #### Public Transaction
 
@@ -103,7 +103,7 @@ Both the sender and receiver use the public address. Public transactions work in
 
 #### Shielded Transaction
 
-A Shielded transaction transfers value from one public account to one or more private addresses.
+A Shielded transaction transfers value from one public account to one or more private notes.
 
 ##### Specification
 
@@ -117,7 +117,7 @@ A Shielded transaction transfers value from one public account to one or more pr
 
 * **outputs** in `PrivateTransaction` should not be empty.
 
-* **balancing_value** in `PrivateTransaction` should equal to the negative of **value**. Since the value deducted from public balance will be fully transferred to private balance.
+* **balancing_value** in `PrivateTransaction` should equal to the negative of **value**. Since the value deducted from public account will be fully transferred to private balance.
 The transaction fee will be deducted from the sender's public account balance in addition to the value. It's the same Ethereum's transaction.
 
 #### Pure Private Transaction
@@ -202,7 +202,7 @@ The exact value of g<sub>base</sub>, g<sub>spend</sub> and g<sub>output</sub> wi
 
 #### Deduct Transaction Fee
 
-For shielded transactions, the transaction fee will be deducted from the sender's public balance. **gasLimit** is used to specify the maximum amount of gas that should be used in executing this transaction.
+For shielded transactions, the transaction fee will be deducted from the sender's public account. **gasLimit** is used to specify the maximum amount of gas that should be used in executing this transaction.
 It's paid upfront and the unused gas will be refunded to the sender's account.
 
 For deshielded transactions or pure private transactions, the cost will be deducted from private inputs. One major difference is that it's impossible to refund the unused gas back to private inputs. So **gasLimit** specifies the amount of gas paid for executing the transaction. If it exceeds the required gas amount, no refund will be issued.
