@@ -101,7 +101,7 @@ Depending on the types of addresses used in the transaction, there are four type
 
 Both the sender and receiver use the public address. Public transactions work in the same way as Etheruem's normal transactions.
 
-#### Shielded Transaction
+#### Public To Private Transaction
 
 A Shielded transaction transfers value from one public account to one or more private notes.
 
@@ -120,9 +120,9 @@ A Shielded transaction transfers value from one public account to one or more pr
 * **balancing_value** in `PrivateTransaction` should equal to the negative of **value**. Since the value deducted from public account will be fully transferred to private balance.
 The transaction fee will be deducted from the sender's public account balance in addition to the value. It's the same Ethereum's transaction.
 
-#### Pure Private Transaction
+#### Private To Private Transaction
 
-A pure private transaction transfers value from private adresses to private adresses, no public addresses appear in this type of transaction.
+A private to private transaction transfers value from private adresses to private adresses, no public addresses appear in this type of transaction.
 
 ##### Specification
 
@@ -136,9 +136,9 @@ A pure private transaction transfers value from private adresses to private adre
 
 * Both **spends** and **outputs** in `PrivateTransaction` should not be empty.
 
-#### Deshielded Transaction
+#### Private To Public Transaction
 
-A Deshielded Transaction transfers value from private addresses to one public account.
+A Private To Public Transaction transfers value from private addresses to one public account.
 
 ##### Specification
 
@@ -175,7 +175,7 @@ We preserved its encoding for future extension.
 
 Here's a summary of the specification for each field for different transaction types.
 
-||Public to Public|Public to contract/creation|Shielded|Pure Private|Deshield|Private Contract Call/Creation|
+||Public to Public|Public to contract/creation|PublicToPrivate|PrivateToPrivate|Deshield|Private Contract Call/Creation|
 |---|---|---|---|---|---|---|
 |Nonce|sender nonce|sender nonce|sender nonce|empty|empty|empty|
 |gasPrice|wei/gas|wei/gas|wei/gas|wei/gas|wei/gas|wei/gas|
@@ -193,19 +193,14 @@ Here's a summary of the specification for each field for different transaction t
 
 #### Gas Cost for Private Transaction
 
-Private transactions invloves additional fields and requires additional computation.
-Its cost should be different from normal transactions. The gas cost should equals to:
-
-g<sub>private_tx</sub> = g<sub>base</sub> + g<sub>spend</sub>*num_of_spends + g<sub>output</sub>*num_of_outputs.
-
-The exact value of g<sub>base</sub>, g<sub>spend</sub> and g<sub>output</sub> will be specified later.
+Currently private transaction is charged for the same amount of gas(21000) as normal transaction.
 
 #### Deduct Transaction Fee
 
-For shielded transactions, the transaction fee will be deducted from the sender's public account. **gasLimit** is used to specify the maximum amount of gas that should be used in executing this transaction.
+For PublicToPrivate transactions, the transaction fee will be deducted from the sender's public account. **gasLimit** is used to specify the maximum amount of gas that should be used in executing this transaction.
 It's paid upfront and the unused gas will be refunded to the sender's account.
 
-For deshielded transactions or pure private transactions, the cost will be deducted from private inputs. One major difference is that it's impossible to refund the unused gas back to private inputs. So **gasLimit** specifies the amount of gas paid for executing the transaction. If it exceeds the required gas amount, no refund will be issued.
+For PrivateToPublic transactions or PrivateToPrivate transactions, the cost will be deducted from private inputs. One major difference is that it's impossible to refund the unused gas back to private inputs. So **gasLimit** specifies the amount of gas paid for executing the transaction. If it exceeds the required gas amount, no refund will be issued.
 
 ### Signature
 
@@ -250,3 +245,5 @@ fn hash(tx: &Transaction, chain_id: Option<u64>) -> H256 {
 ```
 
 **Note:** The sigHash computation is different from the [method](https://github.com/zcash/zips/blob/master/zip-0243.rst) used by Zcash. In their approach, each field is hashed by BLAKE2b with personalization, and then all the hashed values are then combined and hashed again. We should examine if there's any security flaw.
+
+### Processing Private Transaction in Blockchain(Not finished)
